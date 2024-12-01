@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, FlatList, Text, StyleSheet } from "react-native";
-import { fetchItems } from "../services/itemService";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../services/firebaseConfig";
 import ItemCard from "../components/ItemCard";
 
 const HomeScreen = () => {
@@ -8,10 +9,19 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadItems = async () => {
+    const fetchItems = async () => {
       try {
-        const data = await fetchItems();
-        setItems(data);
+        const itemsCollection = collection(db, "items");
+        const snapshot = await getDocs(itemsCollection);
+
+        // Map the documents to extract data
+        const itemsList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        console.log("Fetched items:", itemsList); // Debug log
+        setItems(itemsList); // Update state with fetched items
       } catch (error) {
         console.error("Error fetching items:", error);
       } finally {
@@ -19,7 +29,7 @@ const HomeScreen = () => {
       }
     };
 
-    loadItems();
+    fetchItems();
   }, []);
 
   if (loading) {
