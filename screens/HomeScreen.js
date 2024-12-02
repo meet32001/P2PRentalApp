@@ -1,31 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { View, FlatList, Button, Text, StyleSheet } from "react-native";
+import React, { useContext, useEffect, useState } from "react";
+import { View, Text, FlatList, Button, StyleSheet } from "react-native";
+import { AuthContext } from "../services/AuthContext"; // Correct path to AuthContext
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../services/firebaseConfig";
-import ItemCard from "../components/ItemCard";
+import { db } from "../services/firebaseConfig"; // Adjust path if needed
+import ItemCard from "../components/ItemCard"; // Ensure ItemCard exists and is correctly defined
 
 const HomeScreen = ({ navigation }) => {
+  const { user, loading } = useContext(AuthContext); // Access AuthContext
+
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
     const fetchItems = async () => {
       try {
         const itemsCollection = collection(db, "items");
         const snapshot = await getDocs(itemsCollection);
-
-        // Map the documents to extract data
         const itemsList = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-
-        console.log("Fetched items:", itemsList); // Debug log
-        setItems(itemsList); // Update state with fetched items
+        setItems(itemsList);
       } catch (error) {
         console.error("Error fetching items:", error);
       } finally {
-        setLoading(false);
+        setFetching(false);
       }
     };
 
@@ -35,20 +34,31 @@ const HomeScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text>Loading...</Text>
+        <Text>Authenticating...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.center}>
+        <Text>You must log in to access this screen.</Text>
+        <Button title="Go to Login" onPress={() => navigation.replace("Login")} />
+      </View>
+    );
+  }
+
+  if (fetching) {
+    return (
+      <View style={styles.center}>
+        <Text>Loading items...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Navigation Button */}
-      <Button
-        title="Go to Profile"
-        onPress={() => navigation.navigate("Profile")}
-      />
-
-      {/* List of Items */}
+      <Button title="Go to Profile" onPress={() => navigation.navigate("Profile")} />
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
