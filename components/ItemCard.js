@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 
 const ItemCard = ({ item }) => {
-  console.log("Item data:", item); // Debug log
+  // console.log("Item data:", item); // Debug log
 
   return (
     <TouchableOpacity style={styles.card}>
