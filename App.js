@@ -1,12 +1,15 @@
 import React from "react";
-import { AuthProvider } from "./services/AuthContext"; // Adjust path if needed
-import AppNavigator from "./navigation/AppNavigator"; // Correct path to AppNavigator
+import { AuthProvider } from "./services/AuthContext"; // Adjust path
+import AppNavigator from "./navigation/AppNavigator"; 
+import { ThemeProvider } from "./context/ThemeContext"; // Adjust path
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AppNavigator />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

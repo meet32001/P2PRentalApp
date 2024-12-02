@@ -1,29 +1,30 @@
 import React, { useContext, useEffect, useState } from "react";
-import { View, FlatList, Text, StyleSheet } from "react-native";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { db } from "../services/firebaseConfig";
-import { AuthContext } from "../services/AuthContext";
-import ItemCard from "../components/ItemCard";
+import { View, Text, FlatList, StyleSheet } from "react-native";
+import { useTheme } from "../context/ThemeContext"; // Import Theme Context
+import { lightTheme, darkTheme } from "../styles/themes"; // Import Themes
+import { AuthContext } from "../services/AuthContext"; // Import Auth Context
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../services/firebaseConfig"; // Import Firebase Config
+import ItemCard from "../components/ItemCard"; // Import ItemCard
 
 const ProfileScreen = () => {
-  const { user } = useContext(AuthContext); // Ensure user context is available
+  const { isDarkMode } = useTheme(); // Access Theme Context
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
+  const { user } = useContext(AuthContext); // Access Auth Context
   const [uploadedItems, setUploadedItems] = useState([]);
   const [rentalHistory, setRentalHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch uploaded items and rental history from Firebase
   useEffect(() => {
-    if (!user) return; // Exit if user is not available
+    if (!user) return; // Exit if no user
 
     const fetchUploadedItems = async () => {
       try {
-        // Fetch items where ownerId matches the current user ID
-        const q = query(collection(db, "items"), where("ownerId", "==", user.uid));
+        const q = query(collection(db, "items"), where("ownerId", "==", "userUid123"));
         const snapshot = await getDocs(q);
-        const items = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        console.log("Uploaded Items:", items); // Debugging fetched data
+        const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setUploadedItems(items);
       } catch (error) {
         console.error("Error fetching uploaded items:", error);
@@ -32,30 +33,10 @@ const ProfileScreen = () => {
 
     const fetchRentalHistory = async () => {
       try {
-        // Fetch user's rental history from their Firestore document
-        const userDocRef = doc(db, "users", user.uid);
-        const userSnapshot = await getDoc(userDocRef);
-
-        if (userSnapshot.exists()) {
-          const { rentalHistory } = userSnapshot.data();
-          if (rentalHistory && rentalHistory.length > 0) {
-            // Fetch transactions based on IDs in the rentalHistory array
-            const rentals = await Promise.all(
-              rentalHistory.map(async (transactionId) => {
-                const transactionDocRef = doc(db, "transactions", transactionId);
-                const transactionSnapshot = await getDoc(transactionDocRef);
-                return { id: transactionSnapshot.id, ...transactionSnapshot.data() };
-              })
-            );
-            console.log("Rental History:", rentals); // Debugging fetched data
-            setRentalHistory(rentals);
-          } else {
-            console.log("No rental history found.");
-            setRentalHistory([]);
-          }
-        } else {
-          console.log("User document does not exist.");
-        }
+        const q = query(collection(db, "transactions"), where("renterId", "==", "userUid123"));
+        const snapshot = await getDocs(q);
+        const rentals = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setRentalHistory(rentals);
       } catch (error) {
         console.error("Error fetching rental history:", error);
       }
@@ -72,44 +53,45 @@ const ProfileScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <Text>Loading your profile...</Text>
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.text }}>Loading your profile...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Uploaded Items</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Uploaded Items Section */}
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Uploaded Items</Text>
       <FlatList
         data={uploadedItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ItemCard item={item} />}
         ListEmptyComponent={
-          <Text style={styles.empty}>No items uploaded yet.</Text>
+          <Text style={[styles.empty, { color: theme.text }]}>No items uploaded yet.</Text>
         }
       />
 
-      <Text style={styles.sectionTitle}>Rental History</Text>
+      {/* Rental History Section */}
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Rental History</Text>
       <FlatList
         data={rentalHistory}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.transactionCard}>
-            <Text style={styles.transactionText}>
+          <View style={[styles.transactionCard, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.transactionText, { color: theme.text }]}>
               Item ID: {item.itemId || "N/A"}
             </Text>
-            <Text style={styles.transactionText}>
+            <Text style={[styles.transactionText, { color: theme.text }]}>
               Status: {item.status || "N/A"}
             </Text>
-            <Text style={styles.transactionText}>
-              Total Price: $
-              {item.totalPrice ? item.totalPrice.toFixed(2) : "N/A"}
+            <Text style={[styles.transactionText, { color: theme.text }]}>
+              Total Price: ${item.totalPrice ? item.totalPrice.toFixed(2) : "N/A"}
             </Text>
           </View>
         )}
         ListEmptyComponent={
-          <Text style={styles.empty}>No rental history available.</Text>
+          <Text style={[styles.empty, { color: theme.text }]}>No rental history available.</Text>
         }
       />
     </View>
@@ -118,23 +100,17 @@ const ProfileScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", marginVertical: 10 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  empty: {
-    fontSize: 14,
-    color: "#777",
-    textAlign: "center",
-    marginVertical: 10,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", marginVertical: 10 },
+  empty: { fontSize: 14, textAlign: "center", marginVertical: 10 },
   transactionCard: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 10,
     marginBottom: 10,
-    backgroundColor: "#f9f9f9",
   },
-  transactionText: { fontSize: 14, color: "#333" },
+  transactionText: { fontSize: 14, marginBottom: 5 },
 });
 
 export default ProfileScreen;
